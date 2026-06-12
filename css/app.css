@@ -4,7 +4,18 @@
    01 base & typography      05 components (cards, kpi, table…)
    02 topbar                 06 forms & buttons
    03 launcher (persona hub) 07 mobile frame
-   04 web shell (rail)       08 toast · misc · responsive
+   04 web shell (rail)       08 toast · misc
+
+   Responsiveness (v2.4.0): CONTAINER QUERIES + NO-MEDIA-QUERY
+   LAYOUTS — zero viewport layout breakpoints. Named containers:
+   topbar · shell · stage · content (workspace-inner, app-body,
+   landing-auth) · panel (login-card); cards stay anonymous
+   containers. Everything else is intrinsic: auto-fit grids with
+   minmax(min(100%,…)), clamp() fluid type/space, flex-wrap,
+   overflow-safe centering. Components now respond to the space
+   they're IN — the same .grid collapses inside the 384px phone
+   frame while staying 4-up on the desktop workspace beside it.
+   (The only @media left is prefers-reduced-motion — a11y, not layout.)
    ============================================================ */
 
 /* ---------- 01 · base & typography ---------- */
@@ -45,8 +56,10 @@ button{ font-family:var(--font); cursor:pointer; }
 
 /* ---------- 02 · topbar ---------- */
 .topbar{
-  position:sticky; top:0; z-index:60; height:58px;
-  display:flex; align-items:center; gap:14px; padding:0 22px;
+  container:topbar / inline-size;
+  position:sticky; top:0; z-index:60; min-height:58px;
+  display:flex; align-items:center; flex-wrap:wrap; row-gap:6px;
+  gap:clamp(8px, 1.2cqi, 14px); padding:6px clamp(10px, 2.2vw, 22px);
   background:color-mix(in srgb, var(--canvas) 86%, transparent);
   backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   border-bottom:1px solid var(--line);
@@ -92,8 +105,17 @@ body[data-scrolled="true"] .topbar{ box-shadow:0 8px 24px -18px rgba(40,38,33,.3
 
 .topbar .avatar-btn{ border:0; background:none; padding:0; }
 
+/* the bar responds to its own width — not the viewport */
+@container topbar (max-width: 1060px){
+  .topbar .ver{ display:none; }
+}
+@container topbar (max-width: 940px){
+  .persona-switch .pchip span.pl{ display:none; }
+  .pchip{ padding:5px 9px; }
+}
+
 /* ---------- 03 · launcher ---------- */
-.launcher{ max-width:var(--maxw); margin:0 auto; padding:64px 32px 90px; position:relative; }
+.launcher{ max-width:var(--maxw); margin:0 auto; padding:clamp(36px,6vw,64px) clamp(18px,3.4vw,32px) clamp(56px,8vw,90px); position:relative; }
 .launcher::before{ /* ambient brand wash — depth without noise */
   content:""; position:absolute; top:-140px; right:-80px; width:560px; height:560px;
   background:radial-gradient(closest-side, var(--brand-bg) 0%, transparent 72%);
@@ -109,7 +131,7 @@ body[data-scrolled="true"] .topbar{ box-shadow:0 8px 24px -18px rgba(40,38,33,.3
 .launcher .lede{ font-size:16.5px; line-height:1.65; color:var(--ink-2); max-width:620px; }
 .launcher .lede strong{ font-weight:700; }
 
-.hub-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(206px,1fr)); gap:14px; margin-top:42px; }
+.hub-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,206px),1fr)); gap:14px; margin-top:clamp(26px,4vw,42px); }
 .hub-card{
   position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg);
   padding:22px 20px 18px; display:flex; flex-direction:column; gap:0; min-height:300px;
@@ -145,7 +167,16 @@ body[data-scrolled="true"] .topbar{ box-shadow:0 8px 24px -18px rgba(40,38,33,.3
 .launch-meta b{ color:var(--ink-2); font-weight:700; }
 
 /* ---------- 04 · web shell ---------- */
-.shell{ display:flex; min-height:calc(100vh - 58px); }
+.shell{ display:flex; min-height:calc(100vh - 58px); container:shell / inline-size; }
+
+/* rail folds to icon-width when the SHELL narrows (was @media 1024px) */
+@container shell (max-width: 1024px){
+  .rail{ width:74px; padding:18px 10px; }
+  .rail .group, .rail-head .t, .rail-head .s, .nav-item span.lbl, .rail-foot .note, .tier-chip span{ display:none; }
+  .rail-head{ justify-content:center; padding:6px 0 12px; }
+  .nav-item{ justify-content:center; padding:10px; }
+  .nav-item .count{ position:absolute; top:3px; right:3px; margin:0; padding:1px 5px; min-width:16px; }
+}
 .rail{
   width:242px; flex:none; border-right:1px solid var(--line);
   padding:20px 14px 18px; display:flex; flex-direction:column; gap:4px;
@@ -187,7 +218,7 @@ body[data-scrolled="true"] .topbar{ box-shadow:0 8px 24px -18px rgba(40,38,33,.3
 .rail-foot .note{ font-size:10.5px; color:var(--muted); line-height:1.5; }
 
 .workspace{ flex:1; min-width:0; padding:clamp(24px, 3.2vw, 36px) clamp(22px, 3.8vw, 44px) 88px; }
-.workspace-inner{ max-width:1080px; margin:0 auto; }
+.workspace-inner{ max-width:1080px; margin:0 auto; container:content / inline-size; }
 
 /* Entrance: one brief container fade only.
    Per-child staggers were dropped — throttled/background tabs freeze CSS animations
@@ -201,16 +232,37 @@ body[data-anim="off"] .screen-fade{ animation:none; } /* same-route ledger re-re
 .crumbs svg{ width:11px; height:11px; opacity:.6; }
 .crumbs .here{ color:var(--acc-d); }
 .screen-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:30px; flex-wrap:wrap; }
-.screen-head h1{ font-size:28px; letter-spacing:-.03em; }
+.screen-head h1{ font-size:clamp(21px, 4cqi, 28px); letter-spacing:-.03em; }
 .screen-head .sub{ font-size:13px; color:var(--muted); margin-top:6px; max-width:640px; text-wrap:pretty; }
 .screen-head .actions{ display:flex; gap:9px; flex:none; flex-wrap:wrap; }
 
 /* ---------- 05 · components ---------- */
-.grid{ display:grid; gap:16px; }
+.grid{ display:grid; gap:clamp(10px, 1.8cqi, 16px); }
 .cols-2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 .cols-3{ grid-template-columns:repeat(3,minmax(0,1fr)); }
 .cols-4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
 .span-2{ grid-column:span 2; }
+
+/* grids respond to their CONTENT container (workspace, phone body,
+   landing panel) — the same markup is 4-up on desktop, 2-up inside
+   the 384px phone frame, 1-up in a truly narrow pane. */
+@container content (max-width: 1020px){
+  .cols-4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container content (max-width: 760px){
+  .cols-3{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container content (max-width: 560px){
+  .cols-3{ grid-template-columns:minmax(0,1fr); }
+  .span-2{ grid-column:auto; }
+  .la-session .btn{ flex:1 1 auto; justify-content:center; }
+}
+@container content (max-width: 460px){
+  .cols-4{ grid-template-columns:minmax(0,1fr); }
+}
+@container content (max-width: 320px){
+  .cols-2{ grid-template-columns:minmax(0,1fr); }
+}
 
 .card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
@@ -402,10 +454,14 @@ textarea.input{ resize:vertical; min-height:74px; }
 /* ---------- 07 · mobile frame ---------- */
 .mobile-stage{
   min-height:calc(100vh - 58px); display:flex; align-items:flex-start; justify-content:center;
-  padding:34px 20px 60px; gap:44px;
+  padding:clamp(18px,3.4vw,34px) 20px 60px; gap:clamp(22px,3.6vw,44px);
+  container:stage / inline-size;
 }
+/* the aside yields, then the phone eases down, as the STAGE narrows */
+@container stage (max-width: 1180px){ .stage-aside{ display:none; } }
+@container stage (max-width: 680px){ .phone{ transform:scale(.92); transform-origin:top center; } }
 .phone{
-  width:384px; flex:none; background:#101012; border-radius:54px; padding:11px;
+  width:min(384px, 100%); flex:none; background:#101012; border-radius:54px; padding:11px;
   box-shadow:var(--sh-lg), inset 0 0 0 1.5px #2a2a2e;
   position:relative;
 }
@@ -438,7 +494,7 @@ textarea.input{ resize:vertical; min-height:74px; }
 .app-head .back{ border:0; background:var(--surface); border:1px solid var(--line); width:32px; height:32px; border-radius:99px; display:grid; place-items:center; color:var(--ink-2); flex:none; }
 .app-head .back svg{ width:15px; height:15px; }
 
-.app-body{ flex:1; overflow-y:auto; padding:16px 16px 20px; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; }
+.app-body{ flex:1; overflow-y:auto; padding:16px 16px 20px; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; container:content / inline-size; }
 .app-body > *{ flex:0 0 auto; } /* scroll container: children must never flex-shrink (clock-hero has overflow:hidden → would collapse) */
 .app-body .card{ padding:16px; border-radius:15px; }
 .app-body .kpi{ padding:13px 15px; }
@@ -549,31 +605,8 @@ button.soon:hover, .choice.soon:hover{ transform:none !important; filter:graysca
   display:flex; gap:8px; align-items:center; flex-wrap:wrap;
 }
 
-@media (max-width:1180px){
-  .cols-4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .stage-aside{ display:none; }
-}
-@media (max-width:1024px){
-  .rail{ width:74px; padding:18px 10px; }
-  .rail .group, .rail-head .t, .rail-head .s, .nav-item span.lbl, .rail-foot .note, .tier-chip span{ display:none; }
-  .rail-head{ justify-content:center; padding:6px 0 12px; }
-  .nav-item{ justify-content:center; padding:10px; }
-  .nav-item .count{ position:absolute; top:3px; right:3px; margin:0; padding:1px 5px; min-width:16px; }
-  .workspace{ padding:24px 22px 70px; }
-  .persona-switch .pchip span.pl{ display:none; }
-}
-@media (max-width:860px){
-  .cols-3{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .topbar{ flex-wrap:wrap; height:auto; padding:10px 14px; gap:8px; }
-  .topbar .ver{ display:none; }
-  .screen-head h1{ font-size:22px; }
-}
-@media (max-width:680px){
-  .cols-2,.cols-3,.cols-4{ grid-template-columns:1fr; }
-  .span-2{ grid-column:auto; }
-  .phone{ transform:scale(.92); transform-origin:top center; }
-  .launcher{ padding:40px 20px 60px; }
-}
+/* (viewport layout breakpoints removed — container queries above +
+   intrinsic auto-fit/minmax/clamp layouts carry all responsiveness) */
 
 /* ============================================================
    v2.3.2.db additions — Database Studio · Backup Center
@@ -628,9 +661,9 @@ body[data-portal="1"]{overflow:hidden}
   var(--canvas)}
 
 /* card — paper over the pastel wash */
-.login-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:26px 18px}
-.login-card{width:min(880px,100%);background:rgba(255,255,255,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.9);outline:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-lg);padding:22px 22px 18px}
+.login-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:clamp(16px,3vh,26px) clamp(12px,2.6vw,18px)}
+.login-card{width:min(880px,100%);container:panel / inline-size;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.9);outline:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-lg);padding:clamp(15px,2.6cqi,22px) clamp(13px,2.6cqi,22px) clamp(13px,2.2cqi,18px)}
 .login-card.narrow{width:min(430px,100%)}
 .lg-head{display:flex;align-items:center;gap:11px;margin-bottom:14px;flex-wrap:wrap}
 .lg-head .spacer{flex:1}
@@ -655,7 +688,7 @@ body[data-portal="1"]{overflow:hidden}
 .lp-hint{font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 13px}
 
 /* persona frames — demo account + password pre-filled, one click in */
-.lp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
+.lp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,196px),1fr));gap:12px}
 .lp-frame{position:relative;border:1px solid var(--pl);background:linear-gradient(180deg, var(--pb) 0%, var(--surface) 86%);
   border-radius:16px;padding:13px 13px 12px;display:flex;flex-direction:column;transition:var(--t)}
 .lp-frame:hover{box-shadow:var(--sh)}
@@ -723,16 +756,15 @@ body[data-portal="1"]{overflow:hidden}
 .seg-login svg{width:13px;height:13px}
 .seg-login:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
 
-@media (max-width:640px){
-  .login-card{padding:17px 15px 14px}
-  .login-wrap{justify-content:flex-start}
-  .lp-grid{grid-template-columns:1fr 1fr}
+/* frames thin their chrome when the PANEL narrows (no viewport involved) */
+@container panel (max-width: 560px){
+  .lp-frame{ padding:11px 11px 10px; }
+  .lg-head .spacer{ flex:1 1 100%; height:0; }
 }
-@media (max-width:430px){ .lp-grid{grid-template-columns:1fr} }
 
 /* landing-page sign-in section — the portal frames, below the persona cards */
 .landing-auth{margin-top:30px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
-  box-shadow:var(--sh);padding:20px 20px 16px}
+  box-shadow:var(--sh);padding:clamp(14px,2.4cqi,20px) clamp(12px,2.4cqi,20px) clamp(11px,2cqi,16px);container:content / inline-size}
 .la-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .la-head h2{font:700 17px/1.2 var(--display);color:var(--ink);margin:2px 0 0;letter-spacing:-.01em}
 .la-head .eyebrow{display:block;margin-bottom:2px}
@@ -742,7 +774,4 @@ body[data-portal="1"]{overflow:hidden}
   border-radius:14px;padding:13px 15px;background:var(--surface-2)}
 .la-session b{font-size:13.5px}
 .la-session .spacer{flex:1}
-@media (max-width:640px){
-  .landing-auth{padding:15px 13px 12px}
-  .la-session .btn{flex:1 1 auto;justify-content:center}
-}
+/* (narrow behaviour handled by the @container content rules above) */

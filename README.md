@@ -84,6 +84,13 @@ Same engine as v2.3.2.db (fill `js/turso-config.js`; tables auto-create — `ide
 index.html              entry — loads everything, no bundler
 css/tokens.css          design tokens (Atelier Pastel + persona accents)
 css/app.css             shell styles (+ clean-pastel portal styles at the end)
+                          responsive via CONTAINER QUERIES + no-media-query layouts:
+                          named containers (topbar · shell · stage · content · panel),
+                          12 @container rules, auto-fit/minmax(min(100%,…)) grids,
+                          clamp() fluid type/space — zero viewport layout breakpoints
+                          (only prefers-reduced-motion remains). The same .grid is 4-up
+                          on the desktop workspace and 2-up inside the 384px phone frame
+                          beside it, because it measures its container, not the viewport.
 js/i18n.js              EN live · ລາວ staged (portal + auth mails ship bilingual already)
 js/ui.js                icon set, components, hand-rolled SVG charts
 js/db.js                ★ the data layer — 11 stores, persistence, CRUD, audit facts,
